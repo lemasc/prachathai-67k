@@ -12,15 +12,10 @@ def top_feats(row, features, top_n=25):
     return df
 
 def top_mean_feats(Xtr, features, grp_ids=None, min_tfidf=0.1, top_n=25):
-    ''' Return the top n features that on average are most important amongst documents in rows
-        indentified by indices in grp_ids. '''
-    if grp_ids:
-        D = Xtr[grp_ids].toarray()
-    else:
-        D = Xtr.toarray()
-
-    D[D < min_tfidf] = 0
-    tfidf_means = np.mean(D, axis=0)
+    D = Xtr[grp_ids] if grp_ids is not None else Xtr.copy()
+    D.data[D.data < min_tfidf] = 0
+    D.eliminate_zeros()
+    tfidf_means = np.asarray(D.mean(axis=0)).squeeze()
     return top_feats(tfidf_means, features, top_n)
 
 def top_feats_by_class(Xtr, y, features, min_tfidf=0.1, top_n=25):
@@ -55,10 +50,7 @@ def plot_classfeats_h(dfs, nrow = 2, ncol=4):
         yticks = ax.set_yticklabels(df.feature)
         plt.subplots_adjust(bottom=0.09, right=0.97, left=0.15, top=0.95, wspace=0.52)
     plt.show()
-    
-def show_classfeats(df, vectorizer, analyzer, text_col='texts', class_col='category',
-                    nrow=2, ncol=4):
-    vec = vectorizer(analyzer=analyzer)
-    mat = vec.fit_transform(df[text_col])
-    dfs = top_feats_by_class(mat, df[class_col], vec.get_feature_names())
-    plot_classfeats_h(dfs,nrow,ncol)
+
+def show_classfeats(df, mat, features, class_col='category', nrow=2, ncol=4):
+    dfs = top_feats_by_class(mat, df[class_col], features)
+    plot_classfeats_h(dfs, nrow, ncol)
